@@ -10,8 +10,10 @@ module Cucumber
         attr_accessor :mean_duration, :status
       end
 
-      def initialize(config)
-        super
+      def initialize(runtime, path_or_io, options)
+        @runtime = runtime
+        @io = ensure_io(path_or_io)
+        @options = options
         @stepdef_to_match = Hash.new { |h, stepdef_key| h[stepdef_key] = [] }
         @total_duration = 0
         @matches = {}
