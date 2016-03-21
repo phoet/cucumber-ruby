@@ -92,38 +92,154 @@ module Cucumber
           opts.on('-r LIBRARY|DIR', '--require LIBRARY|DIR', *require_files_msg) {|lib| require_files(lib) }
 
           if(Cucumber::JRUBY)
-            opts.on('-j DIR', '--jars DIR', 'Load all the jars under DIR') {|jars| load_jars(jars) }
+            opts.on('-j DIR', '--jars DIR',
+            'Load all the jars under DIR') do |jars|
+              Dir['#{jars}/**/*.jar'].each {|jar| require jar}
+            end
           end
 
-          opts.on("#{RETRY_FLAG} ATTEMPTS", *retry_msg) {|v| set_option :retry, v.to_i }
-          opts.on('--i18n LANG', *i18n_msg) {|lang| set_language lang }
-          opts.on(FAIL_FAST_FLAG, 'Exit immediately following the first failing scenario') { set_option :fail_fast }
-          opts.on('-f FORMAT', '--format FORMAT', *format_msg, *FORMAT_HELP) {|v| add_option :formats, [v, @out_stream] }
-          opts.on('--init', *init_msg) {|v| initialize_project }
-          opts.on('-o', '--out [FILE|DIR]', *out_msg) {|v| set_out_stream v }
-          opts.on('-t TAG_EXPRESSION', '--tags TAG_EXPRESSION', *tags_msg) {|v| add_option :tag_expressions, v }
-          opts.on('-n NAME', '--name NAME', *name_msg) {|v| add_option :name_regexps, /#{v}/ }
-          opts.on('-e', '--exclude PATTERN', *exclude_msg) {|v| add_option :excludes, Regexp.new(v) }
-          opts.on(PROFILE_SHORT_FLAG, "#{PROFILE_LONG_FLAG} PROFILE", *profile_short_flag_msg) {|v| add_profile v }
-          opts.on(NO_PROFILE_SHORT_FLAG, NO_PROFILE_LONG_FLAG, *no_profile_short_flag_msg) {|v| disable_profile_loading }
-          opts.on('-c', '--[no-]color', *color_msg) {|v| set_color v }
-          opts.on('-d', '--dry-run', *dry_run_msg) { set_dry_run_and_duration }
-          opts.on('-m', '--no-multiline', "Don't print multiline strings and tables under steps.") { set_option :no_multiline }
-          opts.on('-s', '--no-source', "Don't print the file and line of the step definition with the steps.") { set_option :source, false }
-          opts.on('-i', '--no-snippets', "Don't print snippets for pending steps.") { set_option :snippets, false }
-          opts.on('-I', '--snippet-type TYPE', *snippet_type_msg) {|v| set_option :snippet_type, v.to_sym }
-          opts.on('-q', '--quiet', 'Alias for --no-snippets --no-source.') { shut_up }
-          opts.on('--no-duration', "Don't print the duration at the end of the summary") { set_option :duration, false }
-          opts.on('-b', '--backtrace', 'Show full backtrace for all errors.') { Cucumber.use_full_backtrace = true }
-          opts.on('-S', '--strict', 'Fail if there are any undefined or pending steps.') { set_option :strict }
-          opts.on('-w', '--wip', 'Fail if there are any passing scenarios.') { set_option :wip }
-          opts.on('-v', '--verbose', 'Show the files and features loaded.') { set_option :verbose }
-          opts.on('-g', '--guess', 'Guess best match for Ambiguous steps.') { set_option :guess }
-          opts.on('-l', '--lines LINES', *lines_msg) {|lines| set_option :lines, lines }
-          opts.on('-x', '--expand', 'Expand Scenario Outline Tables in output.') { set_option :expand }
+          opts.on('--i18n LANG',
+            'List keywords for in a particular language',
+            %{Run with '--i18n help' to see all languages}) do |lang|
+            require 'gherkin/dialect'
 
+            if lang == 'help'
+              list_languages_and_exit
+            elsif !::Gherkin::DIALECTS.keys.include? lang
+              indicate_invalid_language_and_exit(lang)
+            else
+              list_keywords_and_exit(lang)
+            end
+          end
+          opts.on(FAIL_FAST_FLAG, 'Exit immediately following the first failing scenario') do |v|
+            options[:fail_fast] = true
+          end
+          opts.on('-f FORMAT', '--format FORMAT',
+                  'How to format features (Default: pretty). Available formats:',
+                  *FORMAT_HELP) do |v|
+            formatter, *custom_options = v.split(/,/)
+
+            parsed_options = custom_options.each_with_object({}) do |e, a|
+              name, value = e.split(/=/)
+              a[name] = value
+            end
+
+            @options[:formats] << [formatter, parsed_options, @out_stream]
+          end
+          opts.on('--init',
+            'Initializes folder structure and generates conventional files for',
+            'a Cucumber project.') do |v|
+            ProjectInitializer.new.run
+            Kernel.exit(0)
+          end
+          opts.on('-o', '--out [FILE|DIR]',
+            'Write output to a file/directory instead of STDOUT. This option',
+            'applies to the previously specified --format, or the',
+            'default format if no format is specified. Check the specific',
+            "formatter's docs to see whether to pass a file or a dir.") do |v|
+            @options[:formats] << ['pretty', {}, nil] if @options[:formats].empty?
+            @options[:formats][-1][2] = v
+          end
+          opts.on('-t TAG_EXPRESSION', '--tags TAG_EXPRESSION',
+            'Only execute the features or scenarios with tags matching TAG_EXPRESSION.',
+            'Scenarios inherit tags declared on the Feature level. The simplest',
+            'TAG_EXPRESSION is simply a tag. Example: --tags @dev. When a tag in a tag',
+            'expression starts with a ~, this represents boolean NOT. Example: --tags ~@dev.',
+            'A tag expression can have several tags separated by a comma, which represents',
+            'logical OR. Example: --tags @dev,@wip. The --tags option can be specified',
+            'several times, and this represents logical AND. Example: --tags @foo,~@bar --tags @zap.',
+            'This represents the boolean expression (@foo || !@bar) && @zap.',
+            "\n",
+            'Beware that if you want to use several negative tags to exclude several tags',
+            'you have to use logical AND: --tags ~@fixme --tags ~@buggy.',
+            "\n",
+            'Positive tags can be given a threshold to limit the number of occurrences.',
+            'Example: --tags @qa:3 will fail if there are more than 3 occurrences of the @qa tag.',
+            'This can be practical if you are practicing Kanban or CONWIP.') do |v|
+            @options[:tag_expressions] << v
+          end
+          opts.on('-n NAME', '--name NAME',
+            'Only execute the feature elements which match part of the given name.',
+            'If this option is given more than once, it will match against all the',
+            'given names.') do |v|
+            @options[:name_regexps] << /#{v}/
+          end
+          opts.on('-e', '--exclude PATTERN', "Don't run feature files or require ruby files matching PATTERN") do |v|
+            @options[:excludes] << Regexp.new(v)
+          end
+          opts.on(PROFILE_SHORT_FLAG, '#{PROFILE_LONG_FLAG} PROFILE',
+              'Pull commandline arguments from cucumber.yml which can be defined as',
+              "strings or arrays.  When a 'default' profile is defined and no profile",
+              'is specified it is always used. (Unless disabled, see -P below.)',
+              'When feature files are defined in a profile and on the command line',
+              'then only the ones from the command line are used.') do |v|
+            @profiles << v
+          end
+          opts.on(NO_PROFILE_SHORT_FLAG, NO_PROFILE_LONG_FLAG,
+            "Disables all profile loading to avoid using the 'default' profile.") do |v|
+            @disable_profile_loading = true
+          end
+          opts.on('#{RETRY_FLAG} ATTEMPTS', 'Specify the number of times to retry failing tests (default: 0)') do |v|
+            @options[:retry] = v.to_i
+          end
+          opts.on('-c', '--[no-]color',
+            'Whether or not to use ANSI color in the output. Cucumber decides',
+            'based on your platform and the output destination if not specified.') do |v|
+            Cucumber::Term::ANSIColor.coloring = v
+          end
+          opts.on('-d', '--dry-run', 'Invokes formatters without executing the steps.',
+            'This also omits the loading of your support/env.rb file if it exists.') do
+            @options[:dry_run] = true
+            @options[:duration] = false
+          end
+          opts.on('-m', '--no-multiline',
+            "Don't print multiline strings and tables under steps.") do
+            @options[:no_multiline] = true
+          end
+          opts.on('-s', '--no-source',
+            "Don't print the file and line of the step definition with the steps.") do
+            @options[:source] = false
+          end
+          opts.on('-i', '--no-snippets', "Don't print snippets for pending steps.") do
+            @options[:snippets] = false
+          end
+          opts.on('-I', '--snippet-type TYPE',
+                  'Use different snippet type (Default: regexp). Available types:',
+                  *Cucumber::RbSupport::RbLanguage.cli_snippet_type_options) do |v|
+            @options[:snippet_type] = v.to_sym
+          end
+
+          opts.on('-q', '--quiet', 'Alias for --no-snippets --no-source.') do
+            @options[:snippets] = false
+            @options[:source] = false
+            @options[:duration] = false
+          end
+          opts.on('--no-duration', "Don't print the duration at the end of the summary") do
+            @options[:duration] = false
+          end
+          opts.on('-b', '--backtrace', 'Show full backtrace for all errors.') do
+            Cucumber.use_full_backtrace = true
+          end
+          opts.on('-S', '--strict', 'Fail if there are any undefined or pending steps.') do
+            @options[:strict] = true
+          end
+          opts.on('-w', '--wip', 'Fail if there are any passing scenarios.') do
+            @options[:wip] = true
+          end
+          opts.on('-v', '--verbose', 'Show the files and features loaded.') do
+            @options[:verbose] = true
+          end
+          opts.on('-g', '--guess', 'Guess best match for Ambiguous steps.') do
+            @options[:guess] = true
+          end
+          opts.on('-l', '--lines LINES', 'Run given line numbers. Equivalent to FILE:LINE syntax') do |lines|
+            @options[:lines] = lines
+          end
+          opts.on('-x', '--expand', 'Expand Scenario Outline Tables in output.') do
+            @options[:expand] = true
+          end
           opts.on('--order TYPE[:SEED]', 'Run examples in the specified order. Available types:',
-            *<<-TEXT.split("\n")) do |order|
+            *<<-TEXT.split('\n')) do |order|
   [defined]     Run scenarios in the order they were defined (default).
   [random]      Shuffle scenarios before running.
 Specify SEED to reproduce the shuffling from a previous run.
@@ -131,7 +247,7 @@ Specify SEED to reproduce the shuffling from a previous run.
 TEXT
             @options[:order], @options[:seed] = *order.split(':')
             unless ORDER_TYPES.include?(@options[:order])
-              fail "'#{@options[:order]}' is not a recognised order type. Please use one of #{ORDER_TYPES.join(", ")}."
+              fail "#{@options[:order]}' is not a recognised order type. Please use one of #{ORDER_TYPES.join(', ')}."
             end
           end
 
@@ -160,7 +276,7 @@ TEXT
       end
 
       def check_formatter_stream_conflicts()
-        streams = @options[:formats].uniq.map { |(_, stream)| stream }
+        streams = @options[:formats].uniq.map { |(_, _, stream)| stream }
         return if streams == streams.uniq
         raise 'All but one formatter must use --out, only one can print to each stream (or STDOUT)'
       end
@@ -336,7 +452,7 @@ TEXT
       end
 
       def non_stdout_formats
-        @options[:formats].select {|format, output| output != @out_stream }
+        @options[:formats].select {|format, _, output| output != @out_stream }
       end
 
       def add_option(option, value)
@@ -376,7 +492,7 @@ TEXT
       end
 
       def stdout_formats
-        @options[:formats].select {|format, output| output == @out_stream }
+        @options[:formats].select {|format, _, output| output == @out_stream }
       end
 
       def extract_environment_variables

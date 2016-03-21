@@ -144,8 +144,8 @@ module Cucumber
       end
     end
 
-    describe "#io_for" do
-      it "returns the writable IO stream for the given formatter" do
+    describe '#io_for' do
+      it 'returns the writable IO stream for the given formatter' do
       end
     end
 
