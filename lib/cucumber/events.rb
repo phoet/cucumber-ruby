@@ -23,10 +23,10 @@ module Cucumber
 
     def self.registry
       Core::Events.build_registry(
-        Core::Events::TestCaseStarting,
-        Core::Events::TestCaseFinished,
-        Core::Events::TestStepFinished,
-        Core::Events::TestStepStarting,
+        TestCaseStarting,
+        TestCaseFinished,
+        TestStepFinished,
+        TestStepStarting,
         StepDefinitionRegistered,
         StepMatch,
         TestRunFinished,
