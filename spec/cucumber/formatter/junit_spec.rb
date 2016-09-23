@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'cucumber/formatter/spec_helper'
 
@@ -42,20 +43,18 @@ module Cucumber
             "
           class Junit
             def before_step(step)
-              if step.name.match("a passing ctrl scenario")
-                Interceptor::Pipe.unwrap! :stdout
-                @fake_io = $stdout = StringIO.new
-                $stdout.sync = true
-                @interceptedout = Interceptor::Pipe.wrap(:stdout)
-              end
+              return unless step.name.match("a passing ctrl scenario")
+              Interceptor::Pipe.unwrap! :stdout
+              @fake_io = $stdout = StringIO.new
+              $stdout.sync = true
+              @interceptedout = Interceptor::Pipe.wrap(:stdout)
             end
 
             def after_step(step)
-              if step.name.match("a passing ctrl scenario")
-                @interceptedout.write("boo\b\cx\e\a\f boo ")
-                $stdout = STDOUT
-                @fake_io.close
-              end
+              return unless step.name.match("a passing ctrl scenario")
+              @interceptedout.write("boo\b\cx\e\a\f boo ")
+              $stdout = STDOUT
+              @fake_io.close
             end
           end
 
@@ -90,7 +89,7 @@ module Cucumber
                   Given a passing scenario
             FEATURE
 
-            it { expect(@doc.to_s).to match /One passing scenario, one failing scenario/ }
+            it { expect(@doc.to_s).to match(/One passing scenario, one failing scenario/) }
 
             it 'has not a root system-out node' do
               expect(@doc.xpath('//testsuite/system-out').size).to eq 0
@@ -145,13 +144,13 @@ module Cucumber
                   | Big Mac  |
             FEATURE
 
-            it { expect(@doc.to_s).to match /Eat things when hungry/ }
-            it { expect(@doc.to_s).to match /Cucumber/ }
-            it { expect(@doc.to_s).to match /Whisky/ }
-            it { expect(@doc.to_s).to match /Big Mac/ }
-            it { expect(@doc.to_s).not_to match /Things/ }
-            it { expect(@doc.to_s).not_to match /Good|Evil/ }
-            it { expect(@doc.to_s).not_to match /type="skipped"/}
+            it { expect(@doc.to_s).to match(/Eat things when hungry/) }
+            it { expect(@doc.to_s).to match(/Cucumber/) }
+            it { expect(@doc.to_s).to match(/Whisky/) }
+            it { expect(@doc.to_s).to match(/Big Mac/) }
+            it { expect(@doc.to_s).not_to match(/Things/) }
+            it { expect(@doc.to_s).not_to match(/Good|Evil/) }
+            it { expect(@doc.to_s).not_to match(/type="skipped"/)}
           end
 
           describe "scenario with skipped test in junit report" do
@@ -167,7 +166,7 @@ module Cucumber
                   | still undefined  |
             FEATURE
 
-            it { expect(@doc.to_s).to match /skipped="2"/}
+            it { expect(@doc.to_s).to match(/skipped="2"/)}
           end
 
           describe "with a regular data table scenario" do
@@ -190,12 +189,12 @@ module Cucumber
 
             FEATURE
             # these type of tables shouldn't crash (or generate test cases)
-            it { expect(@doc.to_s).not_to match /milk/ }
-            it { expect(@doc.to_s).not_to match /cookies/ }
+            it { expect(@doc.to_s).not_to match(/milk/) }
+            it { expect(@doc.to_s).not_to match(/cookies/) }
           end
         end
       end
-      
+
       context "In --expand mode" do
         let(:runtime)   { Runtime.new({:expand => true}) }
         before(:each) do
@@ -212,7 +211,7 @@ module Cucumber
             run_defined_feature
             @doc = Nokogiri.XML(@formatter.written_files.values.first)
           end
-          
+
           describe "with a scenario outline table" do
             define_steps do
               Given(/.*/) {  }
@@ -236,16 +235,16 @@ module Cucumber
                   | Big Mac  |
             FEATURE
 
-            it { expect(@doc.to_s).to match /Eat things when hungry/ }
-            it { expect(@doc.to_s).to match /Cucumber/ }
-            it { expect(@doc.to_s).to match /Whisky/ }
-            it { expect(@doc.to_s).to match /Big Mac/ }
-            it { expect(@doc.to_s).not_to match /Things/ }
-            it { expect(@doc.to_s).not_to match /Good|Evil/ }
-            it { expect(@doc.to_s).not_to match /type="skipped"/}
+            it { expect(@doc.to_s).to match(/Eat things when hungry/) }
+            it { expect(@doc.to_s).to match(/Cucumber/) }
+            it { expect(@doc.to_s).to match(/Whisky/) }
+            it { expect(@doc.to_s).to match(/Big Mac/) }
+            it { expect(@doc.to_s).not_to match(/Things/) }
+            it { expect(@doc.to_s).not_to match(/Good|Evil/) }
+            it { expect(@doc.to_s).not_to match(/type="skipped"/)}
           end
         end
-        
+
       end
     end
   end

@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'cucumber/cli/profile_loader'
 require 'cucumber/formatter/ansicolor'
 require 'cucumber/rb_support/rb_language'
@@ -23,7 +24,6 @@ module Cucumber
         'junit'       => ['Cucumber::Formatter::Junit',       'Generates a report similar to Ant+JUnit.'],
         'json'        => ['Cucumber::Formatter::Json',        'Prints the feature as JSON'],
         'json_pretty' => ['Cucumber::Formatter::JsonPretty',  'Prints the feature as prettified JSON'],
-        'debug'       => ['Cucumber::Formatter::Debug',       'For developing formatters - prints the calls made to the listeners.'],
         'summary'       => ['Cucumber::Formatter::Summary',   'Summary output of feature and scenarios']
       }
       max = BUILTIN_FORMATS.keys.map{|s| s.length}.max
@@ -161,9 +161,8 @@ TEXT
 
       def check_formatter_stream_conflicts()
         streams = @options[:formats].uniq.map { |(_, stream)| stream }
-        if streams != streams.uniq
-          raise "All but one formatter must use --out, only one can print to each stream (or STDOUT)"
-        end
+        return if streams == streams.uniq
+        raise "All but one formatter must use --out, only one can print to each stream (or STDOUT)"
       end
 
       def to_hash
@@ -311,10 +310,9 @@ TEXT
 
       def require_files(v)
         @options[:require] << v
-        if(Cucumber::JRUBY && File.directory?(v))
-          require 'java'
-          $CLASSPATH << v
-        end
+        return unless Cucumber::JRUBY && File.directory?(v)
+        require 'java'
+        $CLASSPATH << v
       end
 
       def require_jars(jars)

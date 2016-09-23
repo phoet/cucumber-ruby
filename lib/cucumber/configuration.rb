@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'cucumber/constantize'
 require 'cucumber/cli/rerun_file'
 require 'cucumber/events'
@@ -37,12 +38,6 @@ module Cucumber
 
     def with_options(new_options)
       self.class.new(@options.merge(new_options))
-    end
-
-    # TODO: Actually Deprecate???
-    def options
-      warn("Deprecated: Configuration#options will be removed from the next release of Cucumber. Please use the configuration object directly instead.")
-      Marshal.load(Marhal.dump(@options))
     end
 
     def out_stream
@@ -207,8 +202,7 @@ module Cucumber
           factory = formatter_class(format)
           yield factory, path_or_io, Cli::Options.new(STDOUT, STDERR, @options)
         rescue Exception => e
-          e.message << "\nError creating formatter: #{format}"
-          raise e
+          raise e, "#{e.message}\nError creating formatter: #{format}", e.backtrace
         end
       end
     end
@@ -229,7 +223,7 @@ module Cucumber
     # formatter wants to display snippets to the user.
     #
     # Each proc should take the following arguments:
-    # 
+    #
     #  - keyword
     #  - step text
     #  - multiline argument

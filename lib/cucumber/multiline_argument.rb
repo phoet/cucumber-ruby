@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'delegate'
 require 'cucumber/multiline_argument/data_table'
 require 'cucumber/multiline_argument/doc_string'
@@ -67,5 +68,3 @@ module Cucumber
     end
   end
 end
-
-require 'cucumber/ast'

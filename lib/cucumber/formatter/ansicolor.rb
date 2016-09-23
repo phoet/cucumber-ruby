@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'cucumber/platform'
 require 'cucumber/term/ansicolor'
 
@@ -8,7 +9,7 @@ if Cucumber::WINDOWS_MRI
   end
 end
 
-Cucumber::Term::ANSIColor.coloring = false if !STDOUT.tty? && !ENV.has_key?("AUTOTEST")
+Cucumber::Term::ANSIColor.coloring = false if !STDOUT.tty? && !ENV.key?("AUTOTEST")
 
 module Cucumber
   module Formatter

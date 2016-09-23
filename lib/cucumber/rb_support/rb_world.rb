@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'cucumber/gherkin/formatter/ansi_escapes'
 
 module Cucumber
@@ -19,6 +20,12 @@ module Cucumber
 
       # @private
       attr_writer :__cucumber_runtime, :__natural_language
+
+      # Extend the World with user-defined modules
+      def add_modules!(world_modules, namespaced_world_modules)
+        add_world_modules!(world_modules)
+        add_namespaced_modules!(namespaced_world_modules)
+      end
 
       # Run a single Gherkin step
       # @example Call another step
@@ -64,26 +71,6 @@ module Cucumber
       # @param [String] text_or_table The Gherkin string that represents the table
       def table(text_or_table, file=nil, line_offset=0)
         @__cucumber_runtime.table(text_or_table, file, line_offset)
-      end
-
-      # Create an {Cucumber::Ast::DocString} object
-      #
-      # Useful in conjunction with the #step method, when
-      # want to specify a content type.
-      # @example Create a multiline string
-      #   code = multiline_string(%{
-      #     puts "this is ruby code"
-      #   %}, 'ruby')
-      def doc_string(string_without_triple_quotes, content_type='', line_offset=0)
-        STDERR.puts AnsiEscapes.failed + "WARNING: #doc_string is deprecated. Just pass a regular String instead:" + caller[0] + AnsiEscapes.reset
-        # TODO: rename this method to multiline_string
-        @__cucumber_runtime.doc_string(string_without_triple_quotes, content_type, line_offset)
-      end
-
-      # @deprecated Use {#puts} instead.
-      def announce(*messages)
-        STDERR.puts AnsiEscapes.failed + "WARNING: #announce is deprecated. Use #puts instead:" + caller[0] + AnsiEscapes.reset
-        puts(*messages)
       end
 
       # Print a message to the output.
@@ -137,12 +124,47 @@ module Cucumber
         (class << self; self; end).instance_eval do
           modules += included_modules
         end
+        modules << stringify_namespaced_modules
         sprintf("#<%s:0x%x>", modules.join('+'), self.object_id)
       end
 
       # see {#inspect}
       def to_s
         inspect
+      end
+
+      private
+
+      # @private
+      def add_world_modules!(modules)
+        modules.each do |world_module|
+          extend(world_module)
+        end
+      end
+
+      # @private
+      def add_namespaced_modules!(modules)
+        @__namespaced_modules = modules
+        modules.each do |namespace, world_modules|
+          world_modules.each do |world_module|
+            variable_name = "@__#{namespace}_world"
+
+            inner_world = if self.class.respond_to?(namespace)
+                            instance_variable_get(variable_name)
+                          else
+                            Object.new
+                          end
+            instance_variable_set(variable_name,
+                                  inner_world.extend(world_module))
+            self.class.send(:define_method, namespace) do
+              instance_variable_get(variable_name)
+            end
+          end
+        end
+      end
+
+      def stringify_namespaced_modules
+        @__namespaced_modules.map { |k, v| "#{v.join(',')} (as #{k})" }.join('+')
       end
     end
   end

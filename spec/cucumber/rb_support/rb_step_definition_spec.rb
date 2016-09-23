@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'spec_helper'
 require 'cucumber/rb_support/rb_language'
 
@@ -41,7 +42,6 @@ module Cucumber
 
       it "allows calling of other steps with inline arg" do
         dsl.Given(/Outside/) do
-          location = Core::Ast::Location.new(__FILE__, __LINE__)
           step "Inside", table([['inside']])
         end
         dsl.Given(/Inside/) do |t|
@@ -87,7 +87,7 @@ module Cucumber
         end
 
         it "has the correct location" do
-          dsl.Given /With symbol/, :with_symbol
+          dsl.Given(/With symbol/, :with_symbol)
           expect(step_match("With symbol").file_colon_line).to eq "spec/cucumber/rb_support/rb_step_definition_spec.rb:#{__LINE__-1}"
         end
       end

@@ -19,6 +19,19 @@ The rest of this document is a guide for those maintaining Cucumber, and others 
 
 You can chat with the core team on https://gitter.im/cucumber/cucumber. We try to have office hours on Fridays.
 
+## Installing your own gems
+
+A `Gemfile.local`-file can be used to have your own gems installed to support
+your normal development workflow.
+
+Example:
+
+~~~ruby
+gem 'pry'
+gem 'pry-byebug'
+gem 'byebug'
+~~~
+
 ## Note on Patches/Pull Requests
 
 * Fork the project. Make a branch for your change.
@@ -36,6 +49,13 @@ You can chat with the core team on https://gitter.im/cucumber/cucumber. We try t
     bundle exec rake
 
     To get code coverage results, run `bundle exec rake cov`
+
+## First timer? No problem!
+
+If you are new to the project or to OSS, check the label
+[Easy](https://github.com/cucumber/cucumber-ruby/labels/Easy). Also, you can
+help us to correct style violations reported here:
+[.rubocop_todo.yaml](https://github.com/cucumber/cucumber-ruby/blob/master/.rubocop_todo.yml).
 
 ## Release Process
 

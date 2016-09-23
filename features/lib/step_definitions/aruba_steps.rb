@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 Given('a Gemfile with:') do |content|
   path = File.expand_path(current_dir + "/Gemfile")
   write_file path, content
@@ -16,7 +17,7 @@ Then(/^"([^"]*)" should be required$/) do |file_name|
   expect(all_output).to include("* #{file_name}")
 end
 
-Then /^it fails before running features with:$/ do |expected|
+Then(/^it fails before running features with:$/) do |expected|
   assert_matching_output("\\A#{expected}", all_output)
   assert_success(false)
 end

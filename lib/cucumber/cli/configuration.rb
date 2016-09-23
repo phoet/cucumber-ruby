@@ -1,3 +1,4 @@
+# frozen_string_literal: true
 require 'logger'
 require 'cucumber/cli/options'
 require 'cucumber/cli/rerun_file'
@@ -107,11 +108,6 @@ module Cucumber
 
       def formats
         @options[:formats]
-      end
-
-      def options
-        warn("Deprecated: Configuration#options will be removed from the next release of Cucumber. Please use the configuration object directly instead.")
-        @options
       end
 
       def paths
